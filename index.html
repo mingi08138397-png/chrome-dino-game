@@ -94,6 +94,70 @@ body.night .cloud { background: #555; }
 }
 body.night .star { opacity: 1; }
 
+
+/* ===== 날씨 효과 ===== */
+.weather-layer{
+  position:absolute;
+  inset:0;
+  overflow:hidden;
+  pointer-events:none;
+}
+
+.raindrop{
+  position:absolute;
+  width:2px;
+  height:14px;
+  background:rgba(180,220,255,0.7);
+  animation: rainFall linear infinite;
+}
+
+.sand{
+  position:absolute;
+  width:3px;
+  height:3px;
+  background:#d8c08a;
+  border-radius:50%;
+  opacity:0.7;
+  animation: sandMove linear infinite;
+}
+
+.flash{
+  position:absolute;
+  inset:0;
+  background:white;
+  opacity:0;
+  pointer-events:none;
+}
+
+body.storm .flash.active{
+  animation: flashBang 0.35s;
+}
+
+@keyframes rainFall{
+  from{
+    transform:translateY(-30px) translateX(0);
+  }
+  to{
+    transform:translateY(340px) translateX(-40px);
+  }
+}
+
+@keyframes sandMove{
+  from{
+    transform:translateX(-20px);
+  }
+  to{
+    transform:translateX(850px);
+  }
+}
+
+@keyframes flashBang{
+  0%{opacity:0;}
+  15%{opacity:0.9;}
+  100%{opacity:0;}
+}
+
+
 /* ===== 바닥 ===== */
 #ground {
   position: absolute;
@@ -670,6 +734,10 @@ body.night .star { opacity: 1; }
 
     <div id="dino"></div>
 
+    <div class="weather-layer" id="weather"></div>
+    <div class="flash" id="flash"></div>
+
+
     <div id="ground">
       <div class="ground-strip" id="ground-strip-a"></div>
       <div class="ground-strip" id="ground-strip-b"></div>
@@ -784,6 +852,9 @@ function startGame() {
 
   scoreEl.textContent = fmt(0);
 
+  groundA.style.transform = `translateX(0px)`;
+  groundB.style.transform = `translateX(800px)`;
+
   setState('running');
   prevTs = performance.now();
   raf = requestAnimationFrame(gameLoop);
@@ -855,8 +926,74 @@ function update(dt) {
   updateSpawner(dt);
   updateScore(dt);
   updateAnimations(dt);
+  updateWeather(dt);
   checkCollisions();
   checkDayNight();
+}
+
+
+// ===== 날씨 시스템 =====
+const weatherEl = document.getElementById('weather');
+const flashEl = document.getElementById('flash');
+
+let weatherType = 'clear';
+let weatherTimer = 0;
+let nextWeather = 12000;
+
+function updateWeather(dt){
+  weatherTimer += dt;
+
+  if(weatherTimer >= nextWeather){
+    weatherTimer = 0;
+    nextWeather = 10000 + Math.random() * 12000;
+
+    const types = ['clear','sandstorm','rain','storm'];
+    weatherType = types[Math.floor(Math.random() * types.length)];
+
+    weatherEl.innerHTML = '';
+    document.body.classList.remove('storm');
+
+    if(weatherType === 'sandstorm'){
+      spawnSandstorm();
+    }
+    else if(weatherType === 'rain'){
+      spawnRain(false);
+    }
+    else if(weatherType === 'storm'){
+      document.body.classList.add('storm');
+      spawnRain(true);
+    }
+  }
+
+  if(weatherType === 'storm' && Math.random() < 0.008){
+    flashEl.classList.remove('active');
+    void flashEl.offsetWidth;
+    flashEl.classList.add('active');
+  }
+}
+
+function spawnRain(stormMode){
+  const amount = stormMode ? 80 : 45;
+
+  for(let i=0;i<amount;i++){
+    const drop = document.createElement('div');
+    drop.className = 'raindrop';
+    drop.style.left = Math.random() * 100 + '%';
+    drop.style.top = (-Math.random()*300) + 'px';
+    drop.style.animationDuration = (0.45 + Math.random()*0.5) + 's';
+    weatherEl.appendChild(drop);
+  }
+}
+
+function spawnSandstorm(){
+  for(let i=0;i<70;i++){
+    const sand = document.createElement('div');
+    sand.className = 'sand';
+    sand.style.top = (Math.random()*300) + 'px';
+    sand.style.animationDuration = (1 + Math.random()*2) + 's';
+    sand.style.animationDelay = (Math.random()*2) + 's';
+    weatherEl.appendChild(sand);
+  }
 }
 
 // ===== 속도 =====
