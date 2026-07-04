@@ -212,6 +212,9 @@ body.storm .flash.active{
 .gameover-text { font-size: 24px; margin-bottom: 12px; }
 .restart-text { font-size: 14px; }
 
+[data-state="ending"] .msg-ending { display: block; }
+
+
 /* ===== 공룡 스프라이트 ===== */
 /*
   픽셀 그리드 (12×14, --px=4px 기준 = 48×56px)
@@ -748,6 +751,13 @@ body.storm .flash.active{
     <div class="overlay msg-start">
       <p>Space / ↑ 키로 시작</p>
     </div>
+    
+    <div class="overlay msg-ending">
+      <p class="gameover-text">YOU ESCAPED THE DESERT</p>
+      <p class="restart-text">최종 점수 달성!</p>
+      <p class="restart-text">Space / ↑ 키로 다시 플레이</p>
+    </div>
+
     <div class="overlay msg-gameover">
       <p class="gameover-text">GAME OVER</p>
       <p class="restart-text">Space / ↑ 키로 재시작</p>
@@ -758,8 +768,8 @@ body.storm .flash.active{
 'use strict';
 
 // ===== 상수 =====
-const GRAVITY        = 0.0025;   // px/ms²
-const JUMP_VEL       = -0.65;    // px/ms
+const GRAVITY        = 0.0020;   // px/ms²
+const JUMP_VEL       = -0.78;    // px/ms
 const INITIAL_SPEED  = 0.25;     // px/ms
 const MAX_SPEED      = 0.70;     // px/ms
 const SPEED_ACCEL    = 0.000028; // px/ms per ms
@@ -929,6 +939,11 @@ function update(dt) {
   updateWeather(dt);
   checkCollisions();
   checkDayNight();
+
+  if(score >= ENDING_SCORE){
+    triggerEnding();
+    return;
+  }
 }
 
 
@@ -1185,6 +1200,35 @@ function checkDayNight() {
     cycleCount = cycle;
     document.body.classList.toggle('night');
   }
+}
+
+
+const ENDING_SCORE = 2000;
+
+function triggerEnding(){
+  cancelAnimationFrame(raf);
+  raf = null;
+
+  if (score > hiScore) {
+    hiScore = score;
+    localStorage.setItem('dinoHiScore', hiScore);
+    hiScoreEl.textContent = 'HI ' + fmt(hiScore);
+  }
+
+  setState('ending');
+
+  // 배경 연출
+  document.body.classList.remove('night');
+
+  const game = document.getElementById('game');
+
+  const endingText = document.createElement('div');
+  endingText.innerHTML = '🏜️';
+  endingText.style.position = 'absolute';
+  endingText.style.right = '40px';
+  endingText.style.bottom = '40px';
+  endingText.style.fontSize = '48px';
+  game.appendChild(endingText);
 }
 
 // ===== 유틸 =====
